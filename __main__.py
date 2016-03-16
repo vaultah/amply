@@ -8,7 +8,7 @@ from pathlib import Path, PurePath
 def to_copy(dir, cmp):
     yield from (dir / x for x in cmp.left_only + cmp.diff_files)
     for k, v in cmp.subdirs.items():
-        yield from to_copy(PurePath(k), v)
+        yield from to_copy(dir / k, v)
 
 
 parser = argparse.ArgumentParser()
