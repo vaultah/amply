@@ -52,7 +52,7 @@ tasks = OrderedDict()
 if not source.is_dir():
     config = decoder.decode(source.read_text())
     for k, v in config.items():
-        tasks[k] = [Task(v['source'], Path(x).resolve()) for x in v['targets']]
+        tasks[k] = [Task(v['source'], Path(t).resolve()) for t in v['targets']]
 else:
     tasks[source.stem] = [Task(source, Path(t).resolve()) for t in args.targets]
 
