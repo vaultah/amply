@@ -92,9 +92,15 @@ if args.remove_extra:
 for _, v in tasks.items():
     for task in v:
         if args.list:
-            diff = list(task.diff())
-            lines = '\n'.join(['  * {}'.format(path) for path in diff])
-            print('Difference between {} and {}'.format(task.source, task.target),
-                  ' is empty.' if not diff else ':\n' + lines, sep='')
+            it = task.diff()
+            # See if it has any values
+            first = next(it, None)
+            start = 'Difference between {} and {}'.format(task.source, task.target)
+            if first is None:
+                print(start, 'is empty')
+            else:
+                print(start + ':')
+            for p in it:
+                print('  * {}'.format(p))
         else:
             task.run(args.confirm)
