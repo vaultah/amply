@@ -96,6 +96,7 @@ try:
     data = pkgutil.get_data(__name__, 'config.json')
     if data is None:
         raise OSError('The loader does not support get_data')
+    logging.info('Loaded configuration from the current package')
 except OSError as e:
     logging.debug('pkgutil.get_data raised an exception: {}'.format(e))
     logging.info('Loading configuration from the current package failed')
