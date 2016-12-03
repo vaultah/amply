@@ -77,7 +77,7 @@ parser.add_argument('--log-level', default='warning')
 args = parser.parse_args()
 
 if args.list and (args.confirm or args.remove_extra):
-    raise RuntimeError('--list/-l must be sole argument')
+    raise RuntimeError('-l/--list must be sole argument')
 
 logging.basicConfig(level=args.log_level.upper())
 
