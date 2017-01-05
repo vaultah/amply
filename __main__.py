@@ -122,7 +122,7 @@ if data is not None:
 
 # Create removal tasks
 if args.remove_extra:
-    for _, v in tasks.items(): 
+    for _, v in tasks.items():
         v += [RemovalTask(t.target, t.source) for t in v]
 
 # Execute tasks
