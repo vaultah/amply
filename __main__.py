@@ -81,50 +81,48 @@ if args.list and (args.confirm or args.remove_extra):
 
 logging.basicConfig(level=args.log_level.upper())
 
-# First, try to load 'config.json' from the current package. If that fails, use
-# the command line arguments. If the first argument isn't a directory, assume
-# that it points to the configutation file; otherwise treat it as the source
-# directory and the rest of positional arguments as target directories
+# First, try to parse the command line arguments. If the targets are present,
+# treat the first argument as a path to the source directory; otherwise treat it as a
+# path to the configuration file.
+# If that fails, try to load 'config.json' from the current package
+# (ZIP archive, directory) or from the directory containing the script.
 
 # Maps task names to lists of instances of Task subclasses
 tasks = OrderedDict()
 data = None
 
 # Create copy tasks
-try:
-    # If the file is executed directly, the __spec__ is set None
-    if __spec__ is None:
-        file = Path(__file__).resolve().with_name('config.json')
-        data = file.read_bytes()
-        logging.info('Loaded configuration from {}'.format(file))
-    else:
-        data = pkgutil.get_data(__name__, 'config.json')
-        if data is None:
-            raise OSError('The loader does not support get_data')
-        logging.info('Loaded configuration from the current package')
-
-except OSError as e:
-    logging.debug('pkgutil.get_data raised an exception: {}'.format(e))
-    logging.info('Loading configuration from the current package failed')
+if args.source:
+    # All command line arguments must be present
     source = Path(args.source).resolve()
-    if not source.is_dir():
-        logging.info('The first argument isn\'t a directory, reading configuration')
+    if not args.targets:
+        logging.info('No targets, reading configuration')
         data = source.read_bytes()
     else:
         logging.info('The first argument is the source directory, the rest are targets')
         tasks[source.stem] = [CopyTask(source, Path(t).resolve()) for t in args.targets]
+elif __spec__ is not None:
+    # Load the configuration from the current package
+    logging.info('Loading configuration from the current package')
+    data = pkgutil.get_data(__name__, 'config.json')
+    if data is None:
+        raise OSError('The loader does not support get_data')
+else:
+    # Load the configuration from the script directory
+    file = Path(__file__).resolve().with_name('config.json')
+    logging.info('Loading configuration from {}'.format(file))
+    data = file.read_bytes()
 
-finally:
-    if data is not None:
-        # Will keep the order of keys in configuration file
-        decoder = JSONDecoder(object_pairs_hook=OrderedDict)
-        config = decoder.decode(data.decode())
-        for k, v in config.items():
-            tasks[k] = [CopyTask(v['source'], Path(t).resolve()) for t in v['targets']]
+if data is not None:
+    # Will keep the order of keys in configuration file
+    decoder = JSONDecoder(object_pairs_hook=OrderedDict)
+    config = decoder.decode(data.decode())
+    for k, v in config.items():
+        tasks[k] = [CopyTask(v['source'], Path(t).resolve()) for t in v['targets']]
 
 # Create removal tasks
 if args.remove_extra:
-    for _, v in tasks.items():
+    for _, v in tasks.items(): 
         v += [RemovalTask(t.target, t.source) for t in v]
 
 # Execute tasks

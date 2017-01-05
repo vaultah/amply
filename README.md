@@ -20,7 +20,7 @@ You may provide the directories in a configuration file or as command-line argum
 
 Note that it's only possible to provide one set of source and target directories as command-line arguments. See the `-h/--help` message for more information.
 
-This utility was designed to be run from a package (hence the `__main__.py` file), like a zip file or a directory. The script will first try to load the configuration from `config.json` in the current package. If that fails, it will use command-line arguments: if the first argument is not a path to a directory, it'll be assumed to be a path to the configuration file; otherwise it'll be treated as a source directory and the rest of positional command-line arguments will be treated as targets.
+This utility was designed to be run from a package (hence the `__main__.py` file), like a zip file or a directory. The script will first try to parse the command line arguments. If the targets are present, it will treat the first argument as a path to the source directory; otherwise it will be treated as a path to the configuration file. If that fails, it will try to load 'config.json' from the current package (ZIP archive, directory) or from the directory containing the script.
 
 ### Sample configuration file
 
