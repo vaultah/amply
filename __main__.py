@@ -66,13 +66,17 @@ class RemovalTask(Task):
                 shutil.rmtree(str(path))
 
 
-# TODO: better help message
 parser = argparse.ArgumentParser()
-parser.add_argument('source', nargs='?')
-parser.add_argument('targets', nargs='*')
-parser.add_argument('--confirm', '-c', action='store_true')
-parser.add_argument('--list', '-l',  action='store_true')
-parser.add_argument('--remove-extra', '-r', action='store_true')
+parser.add_argument('source', nargs='?',
+                    help='a path to either a source directory or a configuration file')
+parser.add_argument('targets', nargs='*',
+                    help='paths to target directories')
+parser.add_argument('--confirm', '-c', action='store_true',
+                    help='require confirmation for every action')
+parser.add_argument('--list', '-l',  action='store_true',
+                    help='print difference between directories and exit')
+parser.add_argument('--remove-extra', '-r', action='store_true',
+                    help='sync directories by removing extra files in target directories')
 parser.add_argument('--log-level', default='warning')
 args = parser.parse_args()
 
