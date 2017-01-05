@@ -81,7 +81,7 @@ if args.list and (args.confirm or args.remove_extra):
 
 logging.basicConfig(level=args.log_level.upper())
 
-# First, try to load 'config.json' from the current ZIP file. If that fails, use
+# First, try to load 'config.json' from the current package. If that fails, use
 # the command line arguments. If the first argument isn't a directory, assume
 # that it points to the configutation file; otherwise treat it as the source
 # directory and the rest of positional arguments as target directories
@@ -92,11 +92,17 @@ data = None
 
 # Create copy tasks
 try:
-    # TODO: Only works if the __spec__ is set. Fix?
-    data = pkgutil.get_data(__name__, 'config.json')
-    if data is None:
-        raise OSError('The loader does not support get_data')
-    logging.info('Loaded configuration from the current package')
+    # If the file is executed directly, the __spec__ is set None
+    if __spec__ is None:
+        file = Path(__file__).resolve().with_name('config.json')
+        data = file.read_bytes()
+        logging.info('Loaded configuration from {}'.format(file))
+    else:
+        data = pkgutil.get_data(__name__, 'config.json')
+        if data is None:
+            raise OSError('The loader does not support get_data')
+        logging.info('Loaded configuration from the current package')
+
 except OSError as e:
     logging.debug('pkgutil.get_data raised an exception: {}'.format(e))
     logging.info('Loading configuration from the current package failed')
@@ -107,6 +113,7 @@ except OSError as e:
     else:
         logging.info('The first argument is the source directory, the rest are targets')
         tasks[source.stem] = [CopyTask(source, Path(t).resolve()) for t in args.targets]
+
 finally:
     if data is not None:
         # Will keep the order of keys in configuration file
