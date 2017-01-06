@@ -45,7 +45,7 @@ class CopyTask(Task):
                 continue
             try:
                 logging.info('Copying {} to {}'.format(src, dest))
-                shutil.copy(src, dest)
+                shutil.copy2(src, dest)
             except IsADirectoryError:
                 logging.info('{} is a directory'.format(src))
                 shutil.copytree(src, dest)
