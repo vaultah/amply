@@ -85,61 +85,73 @@ if args.list and (args.confirm or args.remove_extra):
 
 logging.basicConfig(level=args.log_level.upper())
 
+# Read configuration:
 # First, try to parse the command line arguments. If the targets are present,
 # treat the first argument as a path to the source directory; otherwise treat it as a
 # path to the configuration file.
 # If that fails, try to load 'config.json' from the current package
 # (ZIP archive, directory) or from the directory containing the script.
-
-# Maps task names to lists of instances of Task subclasses
-tasks = OrderedDict()
-data = None
-
-# Create copy tasks
-if args.source:
-    # All command line arguments must be present
-    source = Path(args.source).resolve()
-    if not args.targets:
-        logging.info('No targets, reading configuration')
-        data = source.read_bytes()
-    else:
-        logging.info('The first argument is the source directory, the rest are targets')
-        tasks[source.stem] = [CopyTask(source, Path(t).resolve()) for t in args.targets]
-elif __spec__ is not None:
-    # Load the configuration from the current package
-    logging.info('Loading configuration from the current package')
-    data = pkgutil.get_data(__name__, 'config.json')
-    if data is None:
-        raise OSError('The loader does not support get_data')
+if args.source and args.targets:
+    logging.info('The first argument is the source directory, the rest are targets')
+    config = {'<unknown>': {'source': args.source, 'targets': args.targets}}
 else:
-    # Load the configuration from the script directory
-    file = Path(__file__).resolve().with_name('config.json')
-    logging.info('Loading configuration from {}'.format(file))
-    data = file.read_bytes()
+    if args.source and not args.targets:
+        logging.info('No targets, reading configuration')
+        data = Path(args.source).read_bytes()
+    elif __spec__ is not None:
+        # Load the configuration from the current package
+        logging.info('Loading configuration from the current package')
+        data = pkgutil.get_data(__name__, 'config.json')
+        if data is None:
+            raise OSError('The loader does not support get_data')
+    else:
+        # Load the configuration from the script directory
+        file = Path(__file__).resolve().with_name('config.json')
+        logging.info('Loading configuration from {}'.format(file))
+        data = file.read_bytes()
 
-if data is not None:
     # Will keep the order of keys in configuration file
     decoder = JSONDecoder(object_pairs_hook=OrderedDict)
     config = decoder.decode(data.decode())
-    for k, v in config.items():
-        tasks[k] = [CopyTask(v['source'], Path(t).resolve()) for t in v['targets']]
+
+# Maps task names to lists of instances of Task subclasses
+task_groups = OrderedDict()
+
+# Create copy tasks
+for name, params in config.items():
+    task_groups[name] = []
+    source = Path(params['source'])
+
+    if not source.exists():
+        logging.error('Task {name!r}: ignoring source {source} (does not exist)'.format(
+                        name=name, source=params['source']))
+        continue
+
+    for tg in params['targets']:
+        target = Path(tg)
+        if not target.exists():
+            logging.error('Task {name!r}: ignoring target {target} (does not exist)'.format(
+                            name=name, target=tg))
+            continue
+
+        task_groups[name].append(CopyTask(source, target))
 
 # Create removal tasks
 if args.remove_extra:
-    for _, v in tasks.items():
-        v += [RemovalTask(t.target, t.source) for t in v]
+    for _, tasks in task_groups.items():
+        tasks += [RemovalTask(task.target, task.source) for task in tasks]
 
 # Execute tasks
-for k, v in tasks.items():
-    logging.debug('{}: {} tasks'.format(k, len(v)))
-    for task in v:
+for name, tasks in task_groups.items():
+    logging.debug('{}: {} task(s)'.format(name, len(tasks)))
+    for task in tasks:
         if args.list:
             logging.debug('Calling {}.diff()'.format(task))
             it = task.diff()
             # See if it has any values
             first = next(it, None)
             start = '(One-sided) Difference between {} and {}'.format(
-                                                    task.source, task.target)
+                                            task.source, task.target)
             if first is None:
                 print(start, 'is empty')
             else:
