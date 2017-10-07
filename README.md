@@ -1,6 +1,6 @@
 # Amply
 
-Simplistic portable cross-platform backup utility written in Python designed to make replication of directories easier.
+Simplistic pure-Python utility designed to make replication of directories easier.
 
 Basically, given the source directory and list of target directories, it will
 
